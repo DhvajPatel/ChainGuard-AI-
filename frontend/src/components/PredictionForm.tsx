@@ -1,12 +1,24 @@
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { predictDelay, type PredictRequest, type PredictResponse } from "../api";
 import { TrendingUp, Loader2, Brain, Sparkles } from "lucide-react";
 
-interface PredictionFormProps {
-  onPredictionResult: (result: PredictResponse) => void;
+interface SharedDashboardData {
+  shipments: any[];
+  stats: any;
+  riskData: any[];
+  delayCauses: any[];
+  weeklyData: any[];
+  dataLoaded: boolean;
+  isUploadedData: boolean;
+  timestamp?: string;
 }
 
-export default function PredictionForm({ onPredictionResult }: PredictionFormProps) {
+interface PredictionFormProps {
+  onPredictionResult: (result: PredictResponse) => void;
+  sharedData?: SharedDashboardData | null;
+}
+
+export default function PredictionForm({ onPredictionResult, sharedData }: PredictionFormProps) {
   const [formData, setFormData] = useState<PredictRequest>({
     distance: 500,
     traffic: "medium",
@@ -19,6 +31,33 @@ export default function PredictionForm({ onPredictionResult }: PredictionFormPro
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [selectedShipmentIndex, setSelectedShipmentIndex] = useState<number>(0);
+
+  // Pre-fill form with data from uploaded shipments - optimized with dependency check
+  useEffect(() => {
+    if (sharedData && sharedData.dataLoaded && sharedData.shipments && sharedData.shipments.length > 0) {
+      const shipment = sharedData.shipments[selectedShipmentIndex] || sharedData.shipments[0];
+      
+      // Only update if values actually changed
+      setFormData(prev => {
+        const newData = {
+          distance: shipment.distance || 500,
+          traffic: shipment.traffic || 'medium',
+          weather: shipment.weather || 'clear',
+          route_type: shipment.route_type || 'highway',
+          vehicle_type: shipment.vehicle_type || 'truck',
+          historical_delay: shipment.historical_delay || 30,
+        };
+        
+        // Check if data actually changed
+        if (JSON.stringify(prev) === JSON.stringify(newData)) {
+          return prev;
+        }
+        
+        return newData;
+      });
+    }
+  }, [sharedData?.timestamp, selectedShipmentIndex]); // Only re-run when timestamp or selection changes
 
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
@@ -101,6 +140,41 @@ export default function PredictionForm({ onPredictionResult }: PredictionFormPro
       </div>
 
       <form onSubmit={handleSubmit} className="p-8 space-y-6">
+        {/* Data Source Indicator & Shipment Selector */}
+        {sharedData && sharedData.dataLoaded && sharedData.shipments && sharedData.shipments.length > 0 && (
+          <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 backdrop-blur-sm space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-3 h-3 rounded-full bg-blue-400 animate-pulse" />
+              <div className="flex-1">
+                <p className="text-blue-400 font-semibold">
+                  Using {sharedData.isUploadedData ? 'Uploaded Dataset' : 'Sample Data'}
+                </p>
+                <p className="text-slate-400 text-sm">
+                  Form pre-filled with data from Dashboard • {sharedData.shipments.length} shipments available
+                </p>
+              </div>
+            </div>
+            
+            {/* Shipment Selector */}
+            <div>
+              <label className="block text-cyan-400 text-sm font-bold mb-2 uppercase tracking-wider">
+                Select Shipment to Analyze
+              </label>
+              <select
+                value={selectedShipmentIndex}
+                onChange={(e) => setSelectedShipmentIndex(parseInt(e.target.value))}
+                className="w-full px-4 py-3 bg-slate-800/50 border border-cyan-500/30 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all backdrop-blur-sm font-semibold"
+              >
+                {sharedData.shipments.map((shipment: any, index: number) => (
+                  <option key={index} value={index}>
+                    #{shipment.id} - {shipment.origin} → {shipment.destination} ({shipment.distance}km)
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Distance Input */}
           <div>

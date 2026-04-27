@@ -25,10 +25,12 @@ export default function ShipmentTable({ shipments, onSelect, selected }: Props) 
           </div>
         </div>
       </div>
-      <div className="overflow-x-auto">
+      
+      {/* Scrollable container - max 10 rows visible */}
+      <div className="overflow-x-auto max-h-[600px] overflow-y-auto custom-scrollbar">
         <table className="w-full text-sm">
-          <thead>
-            <tr className="text-cyan-400/80 text-xs uppercase tracking-wider border-b border-cyan-500/20 bg-slate-900/60">
+          <thead className="sticky top-0 z-10">
+            <tr className="text-cyan-400/80 text-xs uppercase tracking-wider border-b border-cyan-500/20 bg-slate-900/95 backdrop-blur-xl">
               <th className="px-6 py-4 text-left font-bold">ID</th>
               <th className="px-6 py-4 text-left font-bold">Route</th>
               <th className="px-6 py-4 text-left font-bold">Cargo</th>
@@ -48,7 +50,7 @@ export default function ShipmentTable({ shipments, onSelect, selected }: Props) 
                     ? "bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border-l-4 border-l-cyan-400 shadow-lg shadow-cyan-500/20" 
                     : ""
                 }`}
-                style={{ animationDelay: `${index * 50}ms`, animationDuration: '500ms' }}
+                style={{ animationDelay: `${Math.min(index * 50, 500)}ms`, animationDuration: '500ms' }}
               >
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-2">
@@ -93,7 +95,7 @@ export default function ShipmentTable({ shipments, onSelect, selected }: Props) 
                         ? "text-yellow-400"
                         : "text-green-400"
                     }`}>
-                      {s.delay_probability}%
+                      {s.delay_probability.toFixed(1)}%
                     </span>
                   </div>
                 </td>
@@ -116,6 +118,15 @@ export default function ShipmentTable({ shipments, onSelect, selected }: Props) 
             ))}
           </tbody>
         </table>
+        
+        {/* Scroll indicator */}
+        {shipments.length > 10 && (
+          <div className="sticky bottom-0 left-0 right-0 py-2 bg-gradient-to-t from-slate-900 via-slate-900/95 to-transparent text-center">
+            <p className="text-cyan-400 text-xs font-semibold animate-pulse">
+              ↓ Scroll for more ({shipments.length - 10}+ more shipments) ↓
+            </p>
+          </div>
+        )}
       </div>
       
       {/* Animated bottom glow */}

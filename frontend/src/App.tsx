@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Activity, LayoutDashboard, Brain, BarChart3 } from "lucide-react";
+import { useState, useEffect, memo } from "react";
+import { LayoutDashboard, Brain, BarChart3 } from "lucide-react";
 import Dashboard from "./components/Dashboard";
 import PredictionForm from "./components/PredictionForm";
 import PredictionResults from "./components/PredictionResults";
@@ -7,22 +7,110 @@ import Analytics from "./components/Analytics";
 import ThemeToggle from "./components/ThemeToggle";
 import type { PredictResponse } from "./api";
 
+// Memoized components to prevent unnecessary re-renders
+const MemoizedDashboard = memo(Dashboard);
+const MemoizedPredictionForm = memo(PredictionForm);
+const MemoizedPredictionResults = memo(PredictionResults);
+const MemoizedAnalytics = memo(Analytics);
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<"dashboard" | "predict" | "analytics">("dashboard");
   const [predictionResult, setPredictionResult] = useState<PredictResponse | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [theme, setTheme] = useState<"light" | "dark">("dark"); // Changed default to dark
+  
+  // Shared dashboard data state
+  const [sharedDashboardData, setSharedDashboardData] = useState<any>(null);
 
+  // Listen for dashboard data changes from localStorage
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
+    const loadSharedData = () => {
+      const savedData = localStorage.getItem('chainguard_dashboard_data');
+      if (savedData) {
+        try {
+          const parsed = JSON.parse(savedData);
+          const timestamp = parsed.timestamp;
+          
+          // Only update if data actually changed (compare timestamps)
+          setSharedDashboardData((prev: any) => {
+            if (!prev || prev.timestamp !== timestamp) {
+              return parsed;
+            }
+            return prev;
+          });
+        } catch (err) {
+          console.error('Failed to load shared data:', err);
+        }
+      }
+    };
+
+    // Load initially
+    loadSharedData();
+
+    // Listen for storage changes (cross-tab updates)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'chainguard_dashboard_data') {
+        loadSharedData();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Custom event for same-tab updates (more efficient than polling)
+    const handleCustomUpdate = () => {
+      loadSharedData();
+    };
+    
+    window.addEventListener('dashboardDataUpdated', handleCustomUpdate);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('dashboardDataUpdated', handleCustomUpdate);
+    };
+  }, []);
+
+  // Load prediction result from localStorage on mount
+  useEffect(() => {
+    const savedPrediction = localStorage.getItem('chainguard_prediction');
+    if (savedPrediction) {
+      try {
+        setPredictionResult(JSON.parse(savedPrediction));
+      } catch (err) {
+        console.error('Failed to restore prediction:', err);
+      }
+    }
+  }, []);
+
+  // Save prediction result to localStorage whenever it changes
+  useEffect(() => {
+    if (predictionResult) {
+      localStorage.setItem('chainguard_prediction', JSON.stringify(predictionResult));
+    }
+  }, [predictionResult]);
+
+  // Optimize clock updates - only update when seconds change
+  useEffect(() => {
+    const updateClock = () => {
+      const now = new Date();
+      setCurrentTime(now);
+      
+      // Schedule next update at the start of next second
+      const msUntilNextSecond = 1000 - now.getMilliseconds();
+      return setTimeout(updateClock, msUntilNextSecond);
+    };
+    
+    const timeoutId = updateClock();
+    return () => clearTimeout(timeoutId);
   }, []);
 
   useEffect(() => {
-    // Load theme from localStorage
+    // Load theme from localStorage, default to dark if not set
     const savedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
     if (savedTheme) {
       setTheme(savedTheme);
+    } else {
+      // Set default theme to dark in localStorage
+      localStorage.setItem("theme", "dark");
     }
   }, []);
 
@@ -49,21 +137,21 @@ export default function App() {
         ? "bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 text-slate-900"
         : "bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white"
     }`}>
-      {/* Animated Background Grid */}
-      <div className={`fixed inset-0 bg-[linear-gradient(rgba(56,189,248,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(56,189,248,0.03)_1px,transparent_1px)] bg-[size:50px_50px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000,transparent)] ${
+      {/* Animated Background Grid - Optimized */}
+      <div className={`fixed inset-0 bg-[linear-gradient(rgba(56,189,248,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(56,189,248,0.03)_1px,transparent_1px)] bg-[size:50px_50px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000,transparent)] pointer-events-none ${
         theme === "light" ? "opacity-40" : "opacity-100"
       }`} />
       
-      {/* Glow Effects */}
-      <div className={`fixed top-0 left-1/4 w-96 h-96 rounded-full blur-3xl animate-pulse ${
-        theme === "light" ? "bg-blue-400/30" : "bg-blue-500/10"
-      }`} />
-      <div className={`fixed bottom-0 right-1/4 w-96 h-96 rounded-full blur-3xl animate-pulse delay-1000 ${
-        theme === "light" ? "bg-purple-400/30" : "bg-cyan-500/10"
-      }`} />
-      <div className={`fixed top-1/2 left-1/2 w-96 h-96 rounded-full blur-3xl animate-pulse delay-500 ${
-        theme === "light" ? "bg-indigo-400/20" : "bg-purple-500/5"
-      }`} />
+      {/* Glow Effects - Optimized with will-change */}
+      <div className={`fixed top-0 left-1/4 w-96 h-96 rounded-full blur-3xl pointer-events-none ${
+        theme === "light" ? "bg-blue-400/20" : "bg-blue-500/5"
+      }`} style={{ willChange: 'opacity' }} />
+      <div className={`fixed bottom-0 right-1/4 w-96 h-96 rounded-full blur-3xl pointer-events-none ${
+        theme === "light" ? "bg-purple-400/20" : "bg-cyan-500/5"
+      }`} style={{ willChange: 'opacity' }} />
+      <div className={`fixed top-1/2 left-1/2 w-96 h-96 rounded-full blur-3xl pointer-events-none ${
+        theme === "light" ? "bg-indigo-400/15" : "bg-purple-500/3"
+      }`} style={{ willChange: 'opacity' }} />
 
       {/* Header */}
       <header className={`relative border-b backdrop-blur-xl sticky top-0 z-50 shadow-lg transition-colors duration-500 ${
@@ -76,13 +164,11 @@ export default function App() {
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-3">
                 <div className="relative">
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center shadow-lg ${
-                    theme === "light"
-                      ? "bg-gradient-to-br from-blue-600 to-indigo-600 shadow-blue-500/60"
-                      : "bg-gradient-to-br from-cyan-400 to-blue-600 shadow-cyan-500/50"
-                  }`}>
-                    <Activity className="w-6 h-6 text-white" strokeWidth={2.5} />
-                  </div>
+                  <img 
+                    src="/logo.svg" 
+                    alt="ChainGuard AI Logo" 
+                    className="w-12 h-12 drop-shadow-lg"
+                  />
                   <div className={`absolute -top-1 -right-1 w-3 h-3 rounded-full animate-pulse shadow-lg ${
                     theme === "light" ? "bg-green-500 shadow-green-500/60" : "bg-green-400 shadow-green-400/50"
                   }`} />
@@ -199,19 +285,22 @@ export default function App() {
 
       {/* Main Content */}
       <main className="relative max-w-[1920px] mx-auto px-8 py-8">
-        {activeTab === "dashboard" && <Dashboard />}
+        {activeTab === "dashboard" && <MemoizedDashboard />}
         {activeTab === "predict" && (
           <div className="max-w-7xl mx-auto space-y-6">
             {/* Single Prediction Form */}
-            <PredictionForm onPredictionResult={setPredictionResult} />
+            <MemoizedPredictionForm 
+              onPredictionResult={setPredictionResult} 
+              sharedData={sharedDashboardData}
+            />
             {predictionResult && (
               <div className="animate-in fade-in slide-in-from-bottom duration-500">
-                <PredictionResults result={predictionResult} />
+                <MemoizedPredictionResults result={predictionResult} />
               </div>
             )}
           </div>
         )}
-        {activeTab === "analytics" && <Analytics />}
+        {activeTab === "analytics" && <MemoizedAnalytics sharedData={sharedDashboardData} />}
       </main>
     </div>
   );

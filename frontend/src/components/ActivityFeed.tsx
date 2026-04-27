@@ -49,7 +49,7 @@ export default function ActivityFeed({ shipments }: { shipments: any[] }) {
 
     setActivities(initialActivities);
 
-    // Simulate real-time updates
+    // Simulate real-time updates - increased to 30 seconds for better performance
     const interval = setInterval(() => {
       const messages = [
         { type: "success", message: `Shipment #${Math.floor(Math.random() * 1000)} delivered successfully`, icon: CheckCircle },
@@ -69,7 +69,7 @@ export default function ActivityFeed({ shipments }: { shipments: any[] }) {
       };
 
       setActivities(prev => [newActivity, ...prev].slice(0, 10));
-    }, 15000); // New activity every 15 seconds
+    }, 30000); // Reduced frequency: New activity every 30 seconds (was 15s)
 
     return () => clearInterval(interval);
   }, [shipments]);

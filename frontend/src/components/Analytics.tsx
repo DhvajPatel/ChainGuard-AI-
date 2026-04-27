@@ -31,13 +31,71 @@ interface RoutePerformanceData {
   avg_delay: number;
 }
 
-export default function Analytics() {
+interface SharedDashboardData {
+  shipments: any[];
+  stats: any;
+  riskData: any[];
+  delayCauses: any[];
+  weeklyData: any[];
+  dataLoaded: boolean;
+  isUploadedData: boolean;
+  timestamp?: string;
+}
+
+interface AnalyticsProps {
+  sharedData?: SharedDashboardData | null;
+}
+
+export default function Analytics({ sharedData }: AnalyticsProps) {
   const [weeklyData, setWeeklyData] = useState<WeeklyData[]>([]);
   const [riskData, setRiskData] = useState<RiskData[]>([]);
   const [delayCausesData, setDelayCausesData] = useState<DelayCauseData[]>([]);
   const [routePerfData, setRoutePerfData] = useState<RoutePerformanceData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // If shared data exists (from uploaded dataset), use it
+    if (sharedData && sharedData.dataLoaded) {
+      console.log('📊 Analytics using uploaded dataset');
+      setWeeklyData(sharedData.weeklyData || []);
+      setRiskData(sharedData.riskData || []);
+      setDelayCausesData(sharedData.delayCauses || []);
+      // Generate route performance from shipments
+      if (sharedData.shipments && sharedData.shipments.length > 0) {
+        const routePerf = generateRoutePerformance(sharedData.shipments);
+        setRoutePerfData(routePerf);
+      }
+      setLoading(false);
+    } else {
+      // Otherwise load from backend API
+      loadAnalytics();
+    }
+  }, [sharedData?.timestamp]); // Only re-run when timestamp changes
+
+  const generateRoutePerformance = (shipments: any[]): RoutePerformanceData[] => {
+    const routeMap = new Map<string, { onTime: number; total: number; totalDelay: number }>();
+    
+    shipments.forEach(s => {
+      const route = `${s.origin} → ${s.destination}`;
+      if (!routeMap.has(route)) {
+        routeMap.set(route, { onTime: 0, total: 0, totalDelay: 0 });
+      }
+      const data = routeMap.get(route)!;
+      data.total++;
+      if (s.status === 'On Time') data.onTime++;
+      data.totalDelay += s.expected_delay_minutes || 0;
+    });
+
+    return Array.from(routeMap.entries())
+      .map(([route, data]) => ({
+        route,
+        on_time_rate: Math.round((data.onTime / data.total) * 100),
+        avg_delay: Math.round(data.totalDelay / data.total)
+      }))
+      .sort((a, b) => b.on_time_rate - a.on_time_rate)
+      .slice(0, 10); // Top 10 routes
+  };
 
   useEffect(() => {
     loadAnalytics();
@@ -96,6 +154,23 @@ export default function Analytics() {
 
   return (
     <div className="space-y-6">
+      {/* Data Source Indicator */}
+      {sharedData && sharedData.dataLoaded && (
+        <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 backdrop-blur-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-3 h-3 rounded-full bg-blue-400 animate-pulse" />
+            <div>
+              <p className="text-blue-400 font-semibold">
+                Using {sharedData.isUploadedData ? 'Uploaded Dataset' : 'Sample Data'}
+              </p>
+              <p className="text-slate-400 text-sm">
+                Analytics updated with {sharedData.shipments?.length || 0} shipments from Dashboard
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-white mb-2">Performance Analytics</h2>
         <p className="text-slate-400">Track weekly trends and performance metrics</p>

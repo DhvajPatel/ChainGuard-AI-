@@ -1,6 +1,12 @@
 import axios from "axios";
 
-const api = axios.create({ baseURL: "/api" });
+const api = axios.create({ 
+  baseURL: "/api",
+  timeout: 10000, // 10 second timeout
+  headers: {
+    'Content-Type': 'application/json',
+  }
+});
 
 export interface Shipment {
   id: string;

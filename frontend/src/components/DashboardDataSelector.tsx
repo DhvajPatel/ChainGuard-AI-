@@ -9,52 +9,213 @@ export default function DashboardDataSelector({ onDataLoaded }: DashboardDataSel
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Required columns for shipment dataset
-  const REQUIRED_COLUMNS = [
-    'id', 'origin', 'destination', 'distance', 'traffic', 
-    'weather', 'route_type', 'vehicle_type', 'historical_delay', 
-    'cargo', 'eta_hours'
+  // Core columns that identify a shipment (at least some of these should exist)
+  const CORE_COLUMNS = ['id', 'origin', 'destination'];
+  
+  // Optional columns with defaults
+  const OPTIONAL_COLUMNS = [
+    'distance', 'traffic', 'weather', 'route_type', 'vehicle_type', 
+    'historical_delay', 'cargo', 'eta_hours'
   ];
 
-  const validateCSV = (csvText: string): { valid: boolean; data?: any[]; error?: string } => {
+  // All possible shipment-related column variations (expanded for ports)
+  const COLUMN_ALIASES: { [key: string]: string[] } = {
+    'id': ['id', 'shipment_id', 'shipmentid', 'tracking_id', 'trackingid', 'number', 'no', 'ref', 'reference', 'order', 'order_id', 'booking', 'container', 'bl', 'bill_of_lading'],
+    'origin': ['origin', 'from', 'source', 'start', 'pickup', 'departure', 'origin_port', 'port_of_loading', 'pol', 'loading_port', 'departure_port', 'origin_city', 'from_port', 'shipper', 'sender'],
+    'destination': ['destination', 'to', 'dest', 'end', 'delivery', 'arrival', 'destination_port', 'port_of_discharge', 'pod', 'discharge_port', 'arrival_port', 'destination_city', 'to_port', 'consignee', 'receiver'],
+    'distance': ['distance', 'dist', 'km', 'miles', 'length', 'nautical_miles', 'nm'],
+    'traffic': ['traffic', 'congestion', 'road_condition', 'port_congestion', 'vessel_traffic'],
+    'weather': ['weather', 'climate', 'condition', 'sea_condition', 'wave_height'],
+    'route_type': ['route_type', 'routetype', 'route', 'path_type', 'road_type', 'shipping_route', 'lane', 'service'],
+    'vehicle_type': ['vehicle_type', 'vehicletype', 'vehicle', 'transport_type', 'truck_type', 'vessel_type', 'ship_type', 'container_type', 'mode'],
+    'historical_delay': ['historical_delay', 'historicaldelay', 'delay', 'past_delay', 'avg_delay', 'average_delay', 'typical_delay'],
+    'cargo': ['cargo', 'goods', 'product', 'item', 'freight', 'shipment_type', 'commodity', 'merchandise', 'load'],
+    'eta_hours': ['eta_hours', 'etahours', 'eta', 'estimated_time', 'duration', 'time', 'transit_time', 'sailing_time', 'voyage_duration']
+  };
+
+  // Detect if this looks like ANY kind of logistics/shipment data
+  const isShipmentRelated = (columns: string[]): boolean => {
+    const shipmentKeywords = [
+      'shipment', 'delivery', 'cargo', 'freight', 'transport', 'logistics',
+      'port', 'vessel', 'container', 'tracking', 'order', 'booking',
+      'origin', 'destination', 'from', 'to', 'route', 'eta', 'arrival',
+      'departure', 'pickup', 'drop', 'sender', 'receiver', 'consignee'
+    ];
+    
+    const normalizedColumns = columns.map(c => c.toLowerCase());
+    return shipmentKeywords.some(keyword => 
+      normalizedColumns.some(col => col.includes(keyword))
+    );
+  };
+
+  // Parse CSV line handling quotes and commas inside quotes
+  const parseCSVLine = (line: string): string[] => {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        result.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    
+    result.push(current.trim());
+    return result;
+  };
+
+  // Normalize column name for flexible matching
+  const normalizeColumnName = (name: string): string => {
+    return name.toLowerCase()
+      .trim()
+      .replace(/\s+/g, '_')
+      .replace(/-/g, '_')
+      .replace(/[^\w]/g, '');
+  };
+
+  // Find which standard column this maps to
+  const findStandardColumn = (normalizedName: string): string | null => {
+    for (const [standard, aliases] of Object.entries(COLUMN_ALIASES)) {
+      const normalizedAliases = aliases.map(a => normalizeColumnName(a));
+      if (normalizedAliases.includes(normalizedName)) {
+        return standard;
+      }
+    }
+    return null;
+  };
+
+  const validateCSV = (csvText: string): { valid: boolean; data?: any[]; error?: string; warnings?: string[] } => {
     try {
-      const lines = csvText.trim().split('\n');
+      const lines = csvText.trim().split('\n').filter(line => line.trim());
       if (lines.length < 2) {
-        return { valid: false, error: 'CSV file is empty or has no data rows' };
+        return { valid: false, error: 'File is empty or has no data rows' };
       }
 
       // Parse header
-      const header = lines[0].split(',').map(col => col.trim().toLowerCase());
+      const rawHeader = parseCSVLine(lines[0]);
+      const normalizedHeader = rawHeader.map(col => normalizeColumnName(col));
       
-      // Check for required columns
-      const missingColumns = REQUIRED_COLUMNS.filter(col => !header.includes(col));
-      if (missingColumns.length > 0) {
+      // Check if this looks like shipment data at all
+      if (!isShipmentRelated(rawHeader)) {
+        // Very lenient - if it has at least 3 columns, try to use it anyway
+        if (rawHeader.length < 3) {
+          return { 
+            valid: false, 
+            error: 'File must have at least 3 columns. Please upload a shipment-related dataset.' 
+          };
+        }
+        console.warn('File may not be shipment-related, but proceeding anyway...');
+      }
+      
+      // Map columns to standard names
+      const columnMapping: { [key: number]: string } = {};
+      const foundColumns: string[] = [];
+      
+      normalizedHeader.forEach((normalized, index) => {
+        const standard = findStandardColumn(normalized);
+        if (standard) {
+          columnMapping[index] = standard;
+          foundColumns.push(standard);
+        }
+      });
+
+      // Very flexible - accept if we have ANY recognizable column OR at least 3 columns
+      const hasAnyShipmentColumn = foundColumns.length > 0;
+      const hasMinimumColumns = rawHeader.length >= 3;
+      
+      if (!hasAnyShipmentColumn && !hasMinimumColumns) {
         return { 
           valid: false, 
-          error: `Invalid dataset format. Missing required columns: ${missingColumns.join(', ')}. Please use the correct shipment dataset template.` 
+          error: 'Could not identify shipment data. Please ensure your file has columns like: ID, Origin, Destination, or other shipment-related fields.' 
         };
       }
 
-      // Parse data rows
+      // Parse data rows with flexible handling
       const data = [];
-      for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(',').map(val => val.trim());
-        if (values.length !== header.length) continue;
+      const warnings: string[] = [];
+      let skippedRows = 0;
 
-        const row: any = {};
-        header.forEach((col, index) => {
-          row[col] = values[index];
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        
+        const values = parseCSVLine(line);
+        
+        // Skip rows with too few values
+        if (values.length < 2) {
+          skippedRows++;
+          continue;
+        }
+
+        const row: any = {
+          // Set defaults for all columns
+          id: `SH${String(i).padStart(3, '0')}`,
+          origin: 'Unknown',
+          destination: 'Unknown',
+          distance: 0,
+          traffic: 'medium',
+          weather: 'clear',
+          route_type: 'highway',
+          vehicle_type: 'truck',
+          historical_delay: 0,
+          cargo: 'General',
+          eta_hours: 0
+        };
+
+        // Fill in values from CSV where available
+        Object.entries(columnMapping).forEach(([indexStr, standardCol]) => {
+          const index = parseInt(indexStr);
+          if (index < values.length && values[index]) {
+            const value = values[index].replace(/^["']|["']$/g, '').trim();
+            if (value) {
+              row[standardCol] = value;
+            }
+          }
         });
-        data.push(row);
+
+        // If no columns were mapped, use first 3 columns as id, origin, destination
+        if (Object.keys(columnMapping).length === 0 && values.length >= 3) {
+          row.id = values[0].replace(/^["']|["']$/g, '').trim() || row.id;
+          row.origin = values[1].replace(/^["']|["']$/g, '').trim() || row.origin;
+          row.destination = values[2].replace(/^["']|["']$/g, '').trim() || row.destination;
+        }
+
+        // Accept any row with at least some data
+        if (values.some(v => v && v.trim())) {
+          data.push(row);
+        } else {
+          skippedRows++;
+        }
       }
 
       if (data.length === 0) {
-        return { valid: false, error: 'No valid data rows found in CSV file' };
+        return { valid: false, error: 'No valid data rows found in file' };
       }
 
-      return { valid: true, data };
+      if (skippedRows > 0) {
+        warnings.push(`Processed ${data.length} rows (skipped ${skippedRows} incomplete rows)`);
+      }
+
+      if (foundColumns.length === 0) {
+        warnings.push(`No standard columns detected. Using first 3 columns as: ID, Origin, Destination`);
+      } else {
+        const missingColumns = [...CORE_COLUMNS, ...OPTIONAL_COLUMNS].filter(col => !foundColumns.includes(col));
+        if (missingColumns.length > 0) {
+          warnings.push(`Using defaults for: ${missingColumns.slice(0, 3).join(', ')}${missingColumns.length > 3 ? '...' : ''}`);
+        }
+      }
+
+      return { valid: true, data, warnings };
     } catch (err) {
-      return { valid: false, error: 'Failed to parse CSV file. Please check the format.' };
+      console.error('File parsing error:', err);
+      return { valid: false, error: 'Failed to parse file. Please check the format.' };
     }
   };
 
@@ -63,8 +224,7 @@ export default function DashboardDataSelector({ onDataLoaded }: DashboardDataSel
     setError(null);
     
     try {
-      // Simulate loading sample data
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Load sample data immediately (no delay)
       onDataLoaded(); // Load from backend API
     } catch (err) {
       setError("Failed to load sample data");
@@ -81,25 +241,45 @@ export default function DashboardDataSelector({ onDataLoaded }: DashboardDataSel
     setError(null);
 
     try {
-      // Read file content
-      const text = await file.text();
+      let text = '';
+      
+      // Check file type
+      const fileName = file.name.toLowerCase();
+      const isExcel = fileName.endsWith('.xlsx') || fileName.endsWith('.xls');
+      const isCsv = fileName.endsWith('.csv') || fileName.endsWith('.txt');
+      
+      if (isExcel) {
+        // For Excel files, we'll need to convert to CSV first
+        // Since we can't use external libraries, we'll ask user to save as CSV
+        setError("Excel files detected! Please save your Excel file as CSV format and upload again. (File → Save As → CSV)");
+        setLoading(false);
+        return;
+      } else if (isCsv) {
+        // Read CSV file
+        text = await file.text();
+      } else {
+        // Try to read as text anyway
+        text = await file.text();
+      }
       
       // Validate CSV
       const validation = validateCSV(text);
       
       if (!validation.valid) {
-        setError(validation.error || 'Invalid CSV format');
+        setError(validation.error || 'Invalid file format');
         setLoading(false);
         return;
       }
 
-      // Simulate processing delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Pass validated data to parent
+      // Show warnings if any (but still proceed)
+      if (validation.warnings && validation.warnings.length > 0) {
+        console.info('File Import Info:', validation.warnings);
+      }
+
+      // Pass validated data to parent immediately
       onDataLoaded(validation.data);
     } catch (err) {
-      setError("Failed to process uploaded file. Please ensure it's a valid CSV file.");
+      setError("Failed to process file. Please ensure it's a valid CSV or text file.");
     } finally {
       setLoading(false);
     }
@@ -172,7 +352,7 @@ SH005,Seattle,Portland,280,high,storm,highway,truck,60,Medical,3`;
           >
             <input
               type="file"
-              accept=".csv,.txt"
+              accept=".csv,.txt,.xlsx,.xls"
               onChange={handleFileUpload}
               className="hidden"
               disabled={loading}
@@ -184,12 +364,12 @@ SH005,Seattle,Portland,280,high,storm,highway,truck,60,Medical,3`;
               </div>
               <h3 className="text-2xl font-bold text-white mb-2">Upload Dataset</h3>
               <p className="text-slate-400 mb-4">
-                Import your own CSV file with shipment data
+                Import your CSV file with shipment data
               </p>
               <div className="flex items-center gap-2 text-blue-400 text-sm font-semibold">
                 <span>Custom Data</span>
                 <span>•</span>
-                <span>CSV Format</span>
+                <span>CSV/TXT Format</span>
                 <span>•</span>
                 <span>Unlimited</span>
               </div>
