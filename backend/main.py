@@ -18,4 +18,15 @@ app.include_router(analytics.router, prefix="/api/analytics", tags=["Analytics"]
 
 @app.get("/")
 def root():
-    return {"message": "ChainGuard AI — Predict Delays Before They Happen"}
+    return {"message": "ChainGuard AI — Predict Delays Before They Happen", "status": "online"}
+
+
+@app.get("/health")
+def health_check():
+    return {"status": "healthy", "service": "ChainGuard AI Backend"}
+
+
+@app.get("/api/test")
+def api_test():
+    return {"message": "API is working", "endpoints": ["/api/predict", "/api/shipments", "/api/analytics"]}
+
