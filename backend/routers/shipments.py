@@ -1,103 +1,34 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
 from typing import Literal
-import random
+import json
+import os
 
 router = APIRouter()
 
-# Static demo shipments — realistic Indian logistics corridors
-DEMO_SHIPMENTS = [
-    {
-        "id": "S001",
-        "origin": "Ahmedabad",
-        "destination": "Mumbai",
-        "distance": 524,
-        "traffic": "high",
-        "weather": "rain",
-        "route_type": "highway",
-        "vehicle_type": "truck",
-        "historical_delay": 95,
-        "cargo": "Electronics",
-        "eta_hours": 8.5,
-        "lat_origin": 23.0225, "lng_origin": 72.5714,
-        "lat_dest": 19.0760, "lng_dest": 72.8777,
-    },
-    {
-        "id": "S002",
-        "origin": "Delhi",
-        "destination": "Jaipur",
-        "distance": 281,
-        "traffic": "low",
-        "weather": "clear",
-        "route_type": "highway",
-        "vehicle_type": "van",
-        "historical_delay": 20,
-        "cargo": "Pharmaceuticals",
-        "eta_hours": 4.5,
-        "lat_origin": 28.6139, "lng_origin": 77.2090,
-        "lat_dest": 26.9124, "lng_dest": 75.7873,
-    },
-    {
-        "id": "S003",
-        "origin": "Mumbai",
-        "destination": "Pune",
-        "distance": 148,
-        "traffic": "high",
-        "weather": "storm",
-        "route_type": "urban",
-        "vehicle_type": "truck",
-        "historical_delay": 120,
-        "cargo": "Auto Parts",
-        "eta_hours": 3.0,
-        "lat_origin": 19.0760, "lng_origin": 72.8777,
-        "lat_dest": 18.5204, "lng_dest": 73.8567,
-    },
-    {
-        "id": "S004",
-        "origin": "Chennai",
-        "destination": "Bangalore",
-        "distance": 346,
-        "traffic": "medium",
-        "weather": "cloudy",
-        "route_type": "mixed",
-        "vehicle_type": "truck",
-        "historical_delay": 45,
-        "cargo": "FMCG",
-        "eta_hours": 6.0,
-        "lat_origin": 13.0827, "lng_origin": 80.2707,
-        "lat_dest": 12.9716, "lng_dest": 77.5946,
-    },
-    {
-        "id": "S005",
-        "origin": "Kolkata",
-        "destination": "Bhubaneswar",
-        "distance": 440,
-        "traffic": "medium",
-        "weather": "rain",
-        "route_type": "highway",
-        "vehicle_type": "van",
-        "historical_delay": 60,
-        "cargo": "Textiles",
-        "eta_hours": 7.0,
-        "lat_origin": 22.5726, "lng_origin": 88.3639,
-        "lat_dest": 20.2961, "lng_dest": 85.8245,
-    },
-    {
-        "id": "S006",
-        "origin": "Hyderabad",
-        "destination": "Vijayawada",
-        "distance": 275,
-        "traffic": "low",
-        "weather": "clear",
-        "route_type": "highway",
-        "vehicle_type": "truck",
-        "historical_delay": 15,
-        "cargo": "Food & Beverages",
-        "eta_hours": 4.0,
-        "lat_origin": 17.3850, "lng_origin": 78.4867,
-        "lat_dest": 16.5062, "lng_dest": 80.6480,
-    },
-]
+# Load sample shipments from JSON file
+SAMPLE_DATA_PATH = os.path.join(os.path.dirname(__file__), "../data/sample_shipments.json")
+
+def load_sample_shipments():
+    """Load sample shipments from JSON file, with fallback to empty list."""
+    try:
+        with open(SAMPLE_DATA_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            # Remove pre-computed fields if they exist (we'll compute them dynamically)
+            for shipment in data:
+                shipment.pop("delay_probability", None)
+                shipment.pop("expected_delay_minutes", None)
+                shipment.pop("status", None)
+                shipment.pop("status_color", None)
+            return data
+    except FileNotFoundError:
+        print(f"Warning: Sample data file not found at {SAMPLE_DATA_PATH}")
+        return []
+    except json.JSONDecodeError as e:
+        print(f"Error parsing sample data JSON: {e}")
+        return []
+
+DEMO_SHIPMENTS = load_sample_shipments()
 
 
 def compute_risk(shipment: dict) -> dict:
