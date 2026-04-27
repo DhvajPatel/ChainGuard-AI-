@@ -114,6 +114,33 @@ export default function App() {
     }
   }, []);
 
+  // Keep backend alive - ping every 4 minutes to prevent Hugging Face Space from sleeping
+  useEffect(() => {
+    const backendUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 
+                       'https://dhavj-chainguard-ai-backend.hf.space';
+    
+    const keepAlive = setInterval(async () => {
+      try {
+        const response = await fetch(`${backendUrl}/health`, {
+          method: 'GET',
+          cache: 'no-cache'
+        });
+        if (response.ok) {
+          console.log('✅ Backend keep-alive ping successful');
+        }
+      } catch (error) {
+        console.log('⚠️ Backend keep-alive ping failed (backend might be sleeping)');
+      }
+    }, 4 * 60 * 1000); // 4 minutes
+
+    // Initial ping on app load
+    fetch(`${backendUrl}/health`, { cache: 'no-cache' })
+      .then(() => console.log('✅ Initial backend ping successful'))
+      .catch(() => console.log('⚠️ Initial backend ping failed'));
+
+    return () => clearInterval(keepAlive);
+  }, []);
+
   const toggleTheme = () => {
     const newTheme = theme === "light" ? "dark" : "light";
     setTheme(newTheme);
