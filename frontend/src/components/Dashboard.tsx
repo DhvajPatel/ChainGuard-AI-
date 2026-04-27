@@ -4,10 +4,7 @@ import { mockShipments, mockStats, mockRiskData, mockDelayCauses, mockWeeklyData
 import ShipmentTable from "./ShipmentTable";
 import StatCard from "./StatCard";
 import MapView from "./MapView";
-import LiveMetrics from "./LiveMetrics";
-import AIAssistant from "./AIAssistant";
-import PerformanceScore from "./PerformanceScore";
-import ActivityFeed from "./ActivityFeed";
+// Removed heavy components: LiveMetrics, AIAssistant, PerformanceScore, ActivityFeed
 import DashboardDataSelector from "./DashboardDataSelector";
 import { 
   Package, CheckCircle, AlertTriangle, XCircle,
@@ -798,11 +795,8 @@ export default function Dashboard() {
       {/* Show dashboard content only if data is loaded */}
       {dataLoaded && (
         <>
-          {/* Live Metrics - New Feature */}
-          {stats && <LiveMetrics stats={stats} />}
-
-      {/* Top Stats Grid */}
-      {stats && (
+          {/* Top Stats Grid */}
+          {stats && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <StatCard
             title="Total Shipments"
@@ -877,9 +871,6 @@ export default function Dashboard() {
 
         {/* Right Column - AI Panels (4 columns) */}
         <div className="lg:col-span-4 space-y-6">
-          {/* Performance Score - New Feature */}
-          {stats && <PerformanceScore stats={stats} />}
-
           {/* AI Risk Assessment Panel */}
           {selectedShipment && (
             <div className="bg-slate-900/40 backdrop-blur-xl border border-purple-500/30 rounded-2xl overflow-hidden shadow-2xl shadow-purple-500/10 animate-in fade-in slide-in-from-right duration-300">
@@ -961,9 +952,6 @@ export default function Dashboard() {
               </div>
             </div>
           )}
-
-          {/* Activity Feed - New Feature */}
-          <ActivityFeed shipments={shipments} />
 
           {/* Disruption Detection */}
           <div className="bg-slate-900/40 backdrop-blur-xl border border-red-500/20 rounded-2xl overflow-hidden shadow-2xl shadow-red-500/10">
@@ -1184,8 +1172,6 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* AI Assistant - Floating Chat */}
-      <AIAssistant shipments={shipments} />
         </>
       )}
     </div>
