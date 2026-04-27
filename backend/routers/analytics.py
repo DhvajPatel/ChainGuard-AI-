@@ -29,11 +29,11 @@ DELAY_CAUSES = [
 ]
 
 ROUTE_PERFORMANCE = [
-    {"route": "Ahmedabad→Mumbai", "on_time_rate": 62, "avg_delay": 95},
-    {"route": "Delhi→Jaipur", "on_time_rate": 91, "avg_delay": 18},
-    {"route": "Mumbai→Pune", "on_time_rate": 54, "avg_delay": 128},
-    {"route": "Chennai→Bangalore", "on_time_rate": 79, "avg_delay": 52},
-    {"route": "Kolkata→Bhubaneswar", "on_time_rate": 74, "avg_delay": 63},
+    {"route": "Mumbai→Delhi", "on_time_rate": 68, "avg_delay": 45},
+    {"route": "Bangalore→Chennai", "on_time_rate": 88, "avg_delay": 15},
+    {"route": "Ahmedabad→Mumbai", "on_time_rate": 54, "avg_delay": 95},
+    {"route": "Delhi→Jaipur", "on_time_rate": 85, "avg_delay": 20},
+    {"route": "Mumbai→Pune", "on_time_rate": 52, "avg_delay": 120},
 ]
 
 

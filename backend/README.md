@@ -1,9 +1,10 @@
 ---
 title: ChainGuard AI Backend
 emoji: 🚚
-colorFrom: cyan
-colorTo: blue
+colorFrom: blue
+colorTo: green
 sdk: docker
+app_file: main.py
 pinned: false
 ---
 
@@ -157,17 +158,17 @@ The system generates 3 route alternatives:
 
 ## 📊 Sample Data
 
-The backend includes 10 pre-loaded sample shipments covering major US logistics routes:
-- Los Angeles → San Francisco
-- New York → Boston
-- Chicago → Detroit
-- Houston → Dallas
-- Seattle → Portland
-- Miami → Orlando
-- Phoenix → Las Vegas
-- Denver → Salt Lake City
-- Atlanta → Charlotte
-- San Diego → Phoenix
+The backend includes 10 pre-loaded sample shipments covering major Indian logistics routes:
+- Mumbai → Delhi (1420 km)
+- Bangalore → Chennai (346 km)
+- Ahmedabad → Mumbai (524 km)
+- Kolkata → Bhubaneswar (440 km)
+- Delhi → Jaipur (281 km)
+- Hyderabad → Vijayawada (275 km)
+- Pune → Goa (464 km)
+- Chennai → Coimbatore (507 km)
+- Surat → Indore (412 km)
+- Mumbai → Pune (148 km)
 
 ## 🔧 Technology Stack
 
