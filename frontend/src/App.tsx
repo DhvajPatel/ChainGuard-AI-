@@ -159,29 +159,29 @@ export default function App() {
           ? "bg-white/80 border-blue-300 shadow-blue-300/30"
           : "bg-slate-900/40 border-cyan-500/20 shadow-cyan-500/5"
       }`}>
-        <div className="max-w-[1920px] mx-auto px-8 py-5">
+        <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-5">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-6">
+              <div className="flex items-center gap-2 sm:gap-3">
                 <div className="relative">
                   <img 
                     src="/logo.svg" 
                     alt="ChainGuard AI Logo" 
-                    className="w-12 h-12 drop-shadow-lg"
+                    className="w-8 h-8 sm:w-10 md:w-12 drop-shadow-lg"
                   />
-                  <div className={`absolute -top-1 -right-1 w-3 h-3 rounded-full animate-pulse shadow-lg ${
+                  <div className={`absolute -top-1 -right-1 w-2 h-2 sm:w-3 sm:h-3 rounded-full animate-pulse shadow-lg ${
                     theme === "light" ? "bg-green-500 shadow-green-500/60" : "bg-green-400 shadow-green-400/50"
                   }`} />
                 </div>
                 <div>
-                  <h1 className={`text-3xl font-black tracking-tight bg-gradient-to-r bg-clip-text text-transparent ${
+                  <h1 className={`text-lg sm:text-2xl md:text-3xl font-black tracking-tight bg-gradient-to-r bg-clip-text text-transparent ${
                     theme === "light"
                       ? "from-blue-700 via-indigo-700 to-purple-700"
                       : "from-cyan-400 via-blue-400 to-purple-400"
                   }`}>
                     ChainGuard AI
                   </h1>
-                  <p className={`text-xs font-semibold tracking-wider uppercase ${
+                  <p className={`text-[10px] sm:text-xs font-semibold tracking-wider uppercase hidden sm:block ${
                     theme === "light" ? "text-indigo-700" : "text-cyan-400/80"
                   }`}>
                     Predict. Prevent. Optimize.
@@ -190,17 +190,17 @@ export default function App() {
               </div>
             </div>
 
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2 sm:gap-4 md:gap-6">
               {/* Theme Toggle */}
               <ThemeToggle theme={theme} onToggle={toggleTheme} />
 
-              {/* Real-time Clock */}
-              <div className={`px-4 py-2 rounded-lg backdrop-blur-sm border shadow-lg ${
+              {/* Real-time Clock - Hidden on small mobile */}
+              <div className={`hidden sm:block px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg backdrop-blur-sm border shadow-lg ${
                 theme === "light"
                   ? "bg-gradient-to-r from-blue-100 to-indigo-100 border-blue-400 shadow-blue-400/30"
                   : "bg-slate-800/50 border-cyan-500/30"
               }`}>
-                <div className={`text-sm font-mono font-bold tracking-wider ${
+                <div className={`text-xs sm:text-sm font-mono font-bold tracking-wider ${
                   theme === "light" ? "text-indigo-800" : "text-cyan-400"
                 }`}>
                   {formatTime(currentTime)}
@@ -212,16 +212,16 @@ export default function App() {
       </header>
 
       {/* Navigation Tabs */}
-      <div className={`relative border-b backdrop-blur-xl sticky top-[73px] z-40 transition-colors duration-500 ${
+      <div className={`relative border-b backdrop-blur-xl sticky top-[57px] sm:top-[73px] z-40 transition-colors duration-500 ${
         theme === "light"
           ? "bg-white/90 border-indigo-200 shadow-md shadow-indigo-200/20"
           : "bg-slate-900/60 border-cyan-500/20"
       }`}>
-        <div className="max-w-[1920px] mx-auto px-8">
-          <nav className="flex gap-2">
+        <div className="max-w-[1920px] mx-auto px-2 sm:px-4 lg:px-8">
+          <nav className="flex gap-1 sm:gap-2 overflow-x-auto scrollbar-hide">
             <button
               onClick={() => setActiveTab("dashboard")}
-              className={`flex items-center gap-2 px-6 py-4 font-bold text-sm transition-all border-b-2 relative ${
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 md:px-6 py-3 sm:py-4 font-bold text-xs sm:text-sm transition-all border-b-2 relative whitespace-nowrap ${
                 activeTab === "dashboard"
                   ? theme === "light"
                     ? "border-blue-600 text-blue-700 bg-gradient-to-r from-blue-100 to-indigo-100"
@@ -231,8 +231,9 @@ export default function App() {
                     : "border-transparent text-slate-400 hover:text-slate-300 hover:bg-slate-800/40"
               }`}
             >
-              <LayoutDashboard size={18} />
-              <span className="uppercase tracking-wider">Dashboard</span>
+              <LayoutDashboard size={16} className="sm:w-[18px] sm:h-[18px]" />
+              <span className="uppercase tracking-wider hidden xs:inline">Dashboard</span>
+              <span className="uppercase tracking-wider xs:hidden">Dash</span>
               {activeTab === "dashboard" && (
                 <div className={`absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent to-transparent ${
                   theme === "light" ? "via-blue-600" : "via-cyan-400"
@@ -241,7 +242,7 @@ export default function App() {
             </button>
             <button
               onClick={() => setActiveTab("predict")}
-              className={`flex items-center gap-2 px-6 py-4 font-bold text-sm transition-all border-b-2 relative ${
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 md:px-6 py-3 sm:py-4 font-bold text-xs sm:text-sm transition-all border-b-2 relative whitespace-nowrap ${
                 activeTab === "predict"
                   ? theme === "light"
                     ? "border-purple-600 text-purple-700 bg-gradient-to-r from-purple-100 to-pink-100"
@@ -251,7 +252,7 @@ export default function App() {
                     : "border-transparent text-slate-400 hover:text-slate-300 hover:bg-slate-800/40"
               }`}
             >
-              <Brain size={18} />
+              <Brain size={16} className="sm:w-[18px] sm:h-[18px]" />
               <span className="uppercase tracking-wider">AI Predict</span>
               {activeTab === "predict" && (
                 <div className={`absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent to-transparent ${
@@ -261,7 +262,7 @@ export default function App() {
             </button>
             <button
               onClick={() => setActiveTab("analytics")}
-              className={`flex items-center gap-2 px-6 py-4 font-bold text-sm transition-all border-b-2 relative ${
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 md:px-6 py-3 sm:py-4 font-bold text-xs sm:text-sm transition-all border-b-2 relative whitespace-nowrap ${
                 activeTab === "analytics"
                   ? theme === "light"
                     ? "border-indigo-600 text-indigo-700 bg-gradient-to-r from-indigo-100 to-blue-100"
@@ -271,7 +272,7 @@ export default function App() {
                     : "border-transparent text-slate-400 hover:text-slate-300 hover:bg-slate-800/40"
               }`}
             >
-              <BarChart3 size={18} />
+              <BarChart3 size={16} className="sm:w-[18px] sm:h-[18px]" />
               <span className="uppercase tracking-wider">Analytics</span>
               {activeTab === "analytics" && (
                 <div className={`absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent to-transparent ${
@@ -284,10 +285,10 @@ export default function App() {
       </div>
 
       {/* Main Content */}
-      <main className="relative max-w-[1920px] mx-auto px-8 py-8">
+      <main className="relative max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
         {activeTab === "dashboard" && <MemoizedDashboard />}
         {activeTab === "predict" && (
-          <div className="max-w-7xl mx-auto space-y-6">
+          <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
             {/* Single Prediction Form */}
             <MemoizedPredictionForm 
               onPredictionResult={setPredictionResult} 

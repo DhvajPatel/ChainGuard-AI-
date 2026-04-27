@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { fetchShipments, fetchStats, fetchWeekly, fetchRiskDist, fetchDelayCauses, type Shipment, type SummaryStats } from "../api";
+import { mockShipments, mockStats, mockRiskData, mockDelayCauses, mockWeeklyData } from "../data/mockData";
 import ShipmentTable from "./ShipmentTable";
 import StatCard from "./StatCard";
 import MapView from "./MapView";
@@ -191,7 +192,7 @@ export default function Dashboard() {
       setLoading(true);
       setError(null);
       
-      // Add timeout to prevent infinite loading
+      // Try to fetch from backend with timeout
       const timeout = new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Request timeout')), 10000)
       );
@@ -216,13 +217,19 @@ export default function Dashboard() {
       setWeeklyData(weekly);
       setDataLoaded(true);
       setIsUploadedData(false); // Mark as API data
+      console.log('✅ Loaded data from backend API');
     } catch (err: any) {
-      console.error("Dashboard load error:", err);
-      setError(err.message === 'Request timeout' 
-        ? "Connection timeout. Please check if the backend is running or upload a dataset instead."
-        : "Failed to load dashboard data. Please ensure the backend is running or upload a dataset.");
-      setLoading(false);
-      setDataLoaded(false);
+      console.warn("Backend not available, using mock data:", err.message);
+      
+      // Fallback to mock data
+      setShipments(mockShipments);
+      setStats(mockStats);
+      setRiskData(mockRiskData);
+      setDelayCauses(mockDelayCauses);
+      setWeeklyData(mockWeeklyData);
+      setDataLoaded(true);
+      setIsUploadedData(false);
+      console.log('✅ Loaded mock sample data (backend not available)');
     } finally {
       setLoading(false);
     }
