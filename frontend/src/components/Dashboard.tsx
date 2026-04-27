@@ -234,20 +234,34 @@ export default function Dashboard() {
 
   const handleDataLoaded = (data?: any[]) => {
     try {
+      // ALWAYS clear old data first before loading new data
+      console.log('🧹 Clearing old data...');
+      
+      // Clear state
+      setShipments([]);
+      setStats(null);
+      setRiskData([]);
+      setDelayCauses([]);
+      setWeeklyData([]);
+      setDataLoaded(false);
+      setIsUploadedData(false);
+      setError(null);
+      
+      // Clear localStorage
+      localStorage.removeItem('chainguard_dashboard_data');
+      console.log('🗑️ Cleared localStorage');
+      
       if (data) {
         // Uploaded CSV data - process immediately
         console.log('📤 Processing uploaded data:', data.length, 'rows');
         setLoading(true);
-        setError(null);
         processUploadedData(data);
         setLoading(false);
         console.log('✅ Upload complete');
       } else {
         // Sample data from backend
         console.log('📥 Loading sample data from backend...');
-        setError(null);
         loadData();
-        // No auto-refresh - user can manually refresh if needed
       }
     } catch (err) {
       console.error('❌ Error in handleDataLoaded:', err);
